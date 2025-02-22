@@ -30,7 +30,7 @@ EXPOSE 6080
 RUN echo '#!/bin/bash\n\
 qemu-system-x86_64 \\\n\
     -cpu haswell \\\n\
-    -m 1024 \\\n\
+    -m 1536 \\\n\  # Cấp 1.5 GB RAM\n\
     -drive file=/root/windows_install/windows_disk.raw,format=raw \\\n\
     -cdrom /root/windows_install/windows.iso \\\n\
     -boot d \\\n\
