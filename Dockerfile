@@ -18,7 +18,7 @@ RUN mkdir -p /root/bootcd
 WORKDIR /root/bootcd
 
 # Tải ISO Hiren's BootCD PE x64 từ link bạn cung cấp
-RUN wget -O hirensbootcd.iso https://www.hirensbootcd.org/files/HBCD_PE_x64.iso
+RUN wget -O hirensbootcd.iso https://go.microsoft.com/fwlink/p/?LinkID=2195443&clcid=0x409&culture=en-us&country=US
 
 # Tạo đĩa RAW 40GB
 RUN qemu-img create -f raw /root/bootcd/hirens_disk.raw 40G
