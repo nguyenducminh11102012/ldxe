@@ -29,7 +29,7 @@ EXPOSE 6080
 # Tạo script khởi động QEMU và websockify
 RUN echo '#!/bin/bash\n\
 qemu-system-x86_64 \\\n\
-    -cpu haswell \\\n\
+    -cpu qemu64 \\\n\
     -m 1536 \\\n\
     -drive file=/root/bootcd/hirens_disk.raw,format=raw \\\n\
     -cdrom /root/bootcd/hirensbootcd.iso \\\n\
