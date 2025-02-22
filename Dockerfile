@@ -1,15 +1,13 @@
 # Chọn Ubuntu làm base image
 FROM ubuntu:latest
 
-# Cài đặt các gói cần thiết và đảm bảo kho chứa của Ubuntu có sẵn
+# Cập nhật kho và cài đặt các gói cần thiết
 RUN apt-get update && apt-get install -y \
-    software-properties-common \
-    && add-apt-repository ppa:jacob/virtualization \
-    && apt-get update \
-    && apt-get install -y \
-    qemu-system-x86 \
     novnc \
     websockify \
+    qemu-system-x86 \
+    qemu-kvm \
+    qemu-utils \
     wget \
     && apt-get clean
 
