@@ -1,15 +1,26 @@
-FROM ubuntu:latest
+FROM ubuntu:22.04
 
-# Cài đặt ttyd, bash và curl
-RUN apt-get update && \
-    apt-get install -y ttyd bash curl && \
-    apt-get clean
+# Cập nhật và cài đặt QEMU, noVNC
+RUN apt update && apt install -y \
+    qemu-system-x86 \
+    qemu-utils \
+    wget \
+    novnc \
+    websockify \
+    && rm -rf /var/lib/apt/lists/*
 
-# Cấu hình quyền ghi cho thư mục container (root)
-RUN chmod -R 777 /root
+# Tải Ubuntu ISO
+WORKDIR /root
+RUN wget -O ubuntu.iso https://releases.ubuntu.com/jammy/ubuntu-22.04.5-live-server-amd64.iso
 
-# Mở cổng web cho ttyd
-EXPOSE 7681
+# Script khởi động QEMU + noVNC
+RUN echo '#!/bin/bash\n\
+qemu-system-x86_64 -cpu qemu64 -m 2048 -cdrom ubuntu.iso -boot d -vnc :0 &\n\
+websockify --web=/usr/share/novnc 6080 localhost:5900' > /root/start.sh \
+    && chmod +x /root/start.sh
 
-# Chạy ttyd với --writable để có thể ghi vào terminal trên web
-CMD ["ttyd", "--writable", "-p", "7681", "bash"]
+# Expose cổng noVNC
+EXPOSE 6080
+
+# Chạy QEMU + noVNC khi container khởi động
+CMD ["/bin/bash", "/root/start.sh"]
