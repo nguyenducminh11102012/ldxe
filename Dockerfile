@@ -2,11 +2,11 @@
 FROM ubuntu:latest
 
 # Cập nhật và cài đặt Cockpit
-RUN apt update && apt install -y cockpit cockpit-machines \
+RUN apt update && apt install -y cockpit cockpit-machines podman \
     && apt clean
 
-# Mở cổng 9090 cho Cockpit
+# Mở cổng 9090
 EXPOSE 9090
 
-# Chạy Cockpit theo cách thủ công mà không cần systemd
-CMD ["/usr/libexec/cockpit-ws", "--no-tls", "--port=9090"]
+# Khởi động Cockpit mà không cần systemd
+CMD ["/usr/bin/podman", "system", "service", "--time=0"]
