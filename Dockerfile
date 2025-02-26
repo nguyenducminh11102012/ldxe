@@ -1,5 +1,6 @@
-# Sử dụng hình ảnh chính thức của Portainer
-FROM portainer/portainer-ce:latest  
+# Sử dụng Portainer làm base image
+FROM portainer/portainer-ce:latest
 
-# Chạy Portainer mà không cần Docker daemon
-CMD ["/portainer", "--no-auth", "--bind", "0.0.0.0:9000"]
+# Chạy Portainer với lệnh chính xác
+ENTRYPOINT ["/portainer"]
+CMD ["--no-auth", "--http-enabled", "--http-bind", "0.0.0.0:9000"]
