@@ -1,15 +1,15 @@
-# Sử dụng hình ảnh Docker của Dockurr cho Windows
+# Sử dụng Dockurr Windows làm base image
 FROM dockurr/windows
 
-# Đặt biến môi trường để chọn Windows Server 2012 và vô hiệu hóa KVM
+# Thiết lập biến môi trường để chạy Windows Server 2012 mà không cần KVM
 ENV VERSION="2012"
 ENV KVM="N"
 
-# Cấp quyền cho container
-CAPS NET_ADMIN
+# Cấp quyền cần thiết cho container
+RUN apt-get update && apt-get install -y iproute2
 
-# Mở các cổng cần thiết
+# Mở cổng dịch vụ
 EXPOSE 8006 3389
 
-# Chạy Windows Server khi container khởi động
-CMD ["-it", "--rm", "-p", "8006:8006", "--device=/dev/net/tun", "--cap-add", "NET_ADMIN", "--stop-timeout", "120"]
+# Chạy lệnh khởi động Windows Server 2012
+CMD ["qemu-system-x86_64", "-m", "4G", "-smp", "2", "-netdev", "user,id=n1", "-device", "e1000,netdev=n1"]
