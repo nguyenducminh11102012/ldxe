@@ -1,15 +1,14 @@
-# Sử dụng hình ảnh Dockurr cho Windows
 FROM dockurr/windows
 
-# Đặt biến môi trường
+# Thiết lập biến môi trường
 ENV VERSION="2012"
 ENV KVM="N"
 
-# Mở cổng
-EXPOSE 8006 3389
+# Cấp quyền cho container
+RUN apt-get update && apt-get install -y iproute2
 
-# Sử dụng Tini đúng cách
-ENTRYPOINT ["/usr/bin/tini", "--"]
+# Mở cổng 8006
+EXPOSE 8006
 
-# Chạy lệnh chính xác
-CMD ["qemu-system-x86_64", "-m", "4G", "-smp", "2", "-netdev", "user,id=n1", "-device", "e1000,netdev=n1"]
+# Chạy container với quyền NET_ADMIN và mở TUN device
+CMD ["sh", "-c", "iptables -t nat -A POSTROUTING -j MASQUERADE && /entrypoint.sh"]
