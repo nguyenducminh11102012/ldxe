@@ -1,12 +1,15 @@
-# Sử dụng Ubuntu làm base image
-FROM ubuntu:latest
+# Sử dụng Alpine Linux cho nhẹ
+FROM alpine:latest  
 
-# Cập nhật và cài đặt Cockpit
-RUN apt update && apt install -y cockpit cockpit-machines podman \
-    && apt clean
+# Cài đặt các công cụ cần thiết
+RUN apk add --no-cache docker-cli curl
 
-# Mở cổng 9090
-EXPOSE 9090
+# Tải và cài đặt Portainer
+RUN curl -L https://downloads.portainer.io/ce2-18/portainer-2.18.4-linux-amd64.tar.gz | tar -xz \
+    && mv portainer /usr/local/bin/
 
-# Khởi động Cockpit mà không cần systemd
-CMD ["/usr/bin/podman", "system", "service", "--time=0"]
+# Mở cổng 9000 cho giao diện web Portainer
+EXPOSE 9000  
+
+# Chạy Portainer khi container khởi động
+CMD ["portainer", "--host", "unix:///var/run/docker.sock"]
