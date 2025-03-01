@@ -1,10 +1,14 @@
 #!/bin/bash
 set -eou pipefail
 
-chown root:kvm /dev/kvm
+# Khởi động các dịch vụ cần thiết
 service libvirtd start
 service virtlogd start
+
+# Chạy Vagrant
 VAGRANT_DEFAULT_PROVIDER=libvirt vagrant up
+
+# Cấu hình tường lửa (mở cổng 3389 cho RDP)
 iptables-save > $HOME/firewall.txt
 iptables -X
 iptables -t nat -F
@@ -25,5 +29,8 @@ iptables -D FORWARD -o virbr1 -j REJECT --reject-with icmp-port-unreachable
 iptables -D FORWARD -i virbr1 -j REJECT --reject-with icmp-port-unreachable
 iptables -D FORWARD -o virbr0 -j REJECT --reject-with icmp-port-unreachable
 iptables -D FORWARD -i virbr0 -j REJECT --reject-with icmp-port-unreachable
+
+# Khởi động ngrok tunnel trên cổng 3389 (RDP)
+ngrok tcp 3389 &
 
 exec "$@"
