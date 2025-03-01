@@ -1,14 +1,11 @@
-FROM dockurr/windows
+# Sử dụng Alpine Linux nhẹ
+FROM alpine:latest
 
-# Thiết lập biến môi trường
-ENV VERSION="2012"
-ENV KVM="N"
+# Cài đặt các gói cần thiết
+RUN apk add --no-cache ttyd bash
 
-# Cấp quyền cho container
-RUN apt-get update && apt-get install -y iproute2
+# Đặt cổng mặc định cho ttyd
+EXPOSE 6080
 
-# Mở cổng 8006
-EXPOSE 8006
-
-# Chạy container với quyền NET_ADMIN và mở TUN device
-CMD ["sh", "-c", "iptables -t nat -A POSTROUTING -j MASQUERADE && /entrypoint.sh"]
+# Lệnh chạy ttyd trên cổng 6080 với shell bash
+CMD ["ttyd", "-p", "6080", "bash"]
