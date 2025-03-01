@@ -1,8 +1,12 @@
 FROM ubuntu:18.04
 
 # Cập nhật và cài đặt các gói cần thiết
+ENV DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update -y && apt-get install -y \
-    curl net-tools jq unzip iptables vagrant qemu-kvm libvirt-daemon-system libvirt-dev
+    qemu-kvm libvirt-daemon-system libvirt-dev \
+    keyboard-configuration
+
 
 # Dọn dẹp hệ thống
 RUN apt-get autoclean && apt-get autoremove
