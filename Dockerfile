@@ -1,29 +1,15 @@
-# Sử dụng Windows Server 2019 LTSC
-FROM mcr.microsoft.com/windows:ltsc2019
 
-# Thiết lập PowerShell làm shell mặc định
-SHELL ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command"]
-
-# Cập nhật Windows và cài đặt RDP
-RUN Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0; `
-    Enable-NetFirewallRule -DisplayGroup "Remote Desktop"; `
-    Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
-
-# Đặt mật khẩu cho user "Administrator"
-RUN net user Administrator "YourSecurePassword123" /ACTIVE:YES
-
-# Tải xuống và cài đặt Ngrok
-ADD https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip C:\ngrok.zip
-RUN Expand-Archive -Path C:\ngrok.zip -DestinationPath C:\ngrok; `
-    Remove-Item -Path C:\ngrok.zip -Force; `
-    [System.Environment]::SetEnvironmentVariable('Path', $env:Path + ';C:\ngrok', [System.EnvironmentVariableTarget]::Machine)
-
-# Mở cổng RDP
-EXPOSE 3389
-
-# Chạy Ngrok để mở RDP qua internet
-CMD Start-Process -NoNewWindow -FilePath "C:\ngrok\ngrok.exe" -ArgumentList "authtoken YOUR_NGROK_AUTH_TOKEN"; `
-    Start-Process -NoNewWindow -FilePath "C:\ngrok\ngrok.exe" -ArgumentList "tcp 3389"; `
-    Start-Sleep -Seconds 5; `
-    Write-Host "Ngrok started. Connect using RDP on provided Ngrok URL."; `
-    Start-Sleep -Seconds 86400
+FROM ubuntu:18.04
+RUN apt-get update -y
+RUN apt-get install -y qemu-kvm libvirt-daemon-system libvirt-dev
+RUN apt-get install -y linux-image-$(uname -r)
+RUN apt-get install -y curl net-tools jq
+RUN apt-get autoclean
+RUN apt-get autoremove
+RUN curl -O https://releases.hashicorp.com/vagrant/$(curl -s https://checkpoint-api.hashicorp.com/v1/check/vagrant  | jq -r -M '.current_version')/vagrant_$(curl -s https://checkpoint-api.hashicorp.com/v1/check/vagrant  | jq -r -M '.current_version')_x86_64.deb
+RUN dpkg -i vagrant_$(curl -s https://checkpoint-api.hashicorp.com/v1/check/vagrant  | jq -r -M '.current_version')_x86_64.deb
+RUN vagrant plugin install vagrant-libvirt
+RUN vagrant box add --provider libvirt peru/windows-10-enterprise-x64-eval
+RUN vagrant init peru/windows-10-enterprise-x64-eval
+COPY startup.sh /
+ENTRYPOINT ["/startup.sh"]
