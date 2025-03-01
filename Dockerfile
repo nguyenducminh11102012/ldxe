@@ -1,38 +1,27 @@
-# Sử dụng Windows Server 2019 GUI làm base image
-FROM mcr.microsoft.com/windows/server:2019
+# Sử dụng Windows Server 2019 LTSC
+FROM mcr.microsoft.com/windows:ltsc2019
 
-# Chuyển sang PowerShell để thực thi các lệnh
+# Thiết lập môi trường
 SHELL ["powershell", "-Command"]
 
-# Bật GUI và RDP
-RUN Install-WindowsFeature -Name Desktop-Experience, RDS-RD-Server; \
-    Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0; \
-    Enable-NetFirewallRule -DisplayGroup "Remote Desktop"; \
-    Write-Host "✅ RDP đã bật thành công!"
+# Cài đặt Ngrok
+ADD https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip C:\ngrok.zip
+RUN Expand-Archive C:\ngrok.zip -DestinationPath C:\ngrok; `
+    Remove-Item C:\ngrok.zip; `
+    [System.Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\ngrok", [System.EnvironmentVariableTarget]::Machine)
 
-# Đặt mật khẩu cho Administrator
-RUN $password = ConvertTo-SecureString "YourSecurePass123!" -AsPlainText -Force; \
-    Set-LocalUser -Name "Administrator" -Password $password; \
-    Write-Host "✅ Mật khẩu đã được đặt!"
+# Bật RDP (Remote Desktop Protocol)
+RUN Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0; `
+    Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-# Tải và cài đặt Ngrok
-RUN Invoke-WebRequest -Uri "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip" -OutFile "ngrok.zip"; \
-    Expand-Archive -Path "ngrok.zip" -DestinationPath "C:\ngrok"; \
-    Remove-Item -Path "ngrok.zip"; \
-    Write-Host "✅ Ngrok đã được cài đặt!"
+# Đặt mật khẩu cho user Administrator
+RUN net user Administrator "YourSecurePassword123" /ACTIVE:YES
 
-# Thêm Ngrok vào PATH
-ENV PATH="C:\ngrok;${PATH}"
-
-# Cấu hình Ngrok với Auth Token
-RUN & "C:\ngrok\ngrok.exe" authtoken 2nyiyWrhpT6OwyUoaoZ2zdE9nNo_7KtHBQxaox3Wx2t9qBHTT; \
-    Write-Host "✅ Ngrok đã được cấu hình với Auth Token!"
-
-# Mở cổng RDP
+# Mở cổng RDP và Ngrok
 EXPOSE 3389
 
-# Khởi động RDP và Ngrok khi container chạy
-CMD Start-Service TermService; \
-    Start-Process -NoNewWindow -FilePath "C:\ngrok\ngrok.exe" -ArgumentList "tcp 3389"; \
-    Write-Host "🎉 Ngrok đang chạy, dùng ngrok để lấy RDP!"; \
-    cmd.exe
+# Lệnh khởi động RDP và mở Ngrok (thay YOUR_NGROK_AUTH_TOKEN bằng token của bạn)
+CMD Start-Process -NoNewWindow -FilePath "C:\ngrok\ngrok.exe" -ArgumentList "tcp 3389 --authtoken=YOUR_NGROK_AUTH_TOKEN"; `
+    Start-Sleep -Seconds 5; `
+    Write-Host "Ngrok started. Connect using RDP on provided Ngrok URL."; `
+    Start-Sleep -Seconds 86400
