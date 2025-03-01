@@ -4,7 +4,7 @@ FROM ubuntu:18.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update -y && apt-get install -y \
-    qemu-kvm libvirt-daemon-system libvirt-dev \
+    qemu-kvm libvirt-daemon-system libvirt-dev curl unzip wget \
     keyboard-configuration
 
 
