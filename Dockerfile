@@ -1,13 +1,21 @@
-FROM ubuntu:latest
+# Use Ubuntu 22.04 as base image
+FROM ubuntu:22.04
 
-# Cập nhật hệ thống và cài đặt các dependencies cần thiết
-RUN apt update && apt install -y curl sudo && rm -rf /var/lib/apt/lists/*
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Chạy lệnh cài đặt Coolify
-RUN curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash
+# Install required dependencies and Webmin
+RUN apt update && apt install -y wget apt-transport-https software-properties-common gnupg \
+    && wget -qO - http://www.webmin.com/jcameron-key.asc | apt-key add - \
+    && echo "deb http://download.webmin.com/download/repository sarge contrib" > /etc/apt/sources.list.d/webmin.list \
+    && apt update && apt install -y webmin \
+    && apt clean && rm -rf /var/lib/apt/lists/*
 
-# Mở các cổng cần thiết
-EXPOSE 3000 80 443
+# Set Webmin root password
+RUN echo "root:admin123" | chpasswd
 
-# Lệnh khởi động container
-CMD ["/bin/bash"]
+# Expose Webmin default port
+EXPOSE 10000
+
+# Start Webmin service
+CMD ["/etc/init.d/webmin", "start" && tail -f /dev/null]
