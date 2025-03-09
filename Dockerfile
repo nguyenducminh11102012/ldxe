@@ -4,6 +4,9 @@ FROM ubuntu:22.04
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Remove potential lock files to prevent apt issues
+RUN rm -rf /var/lib/apt/lists/lock
+
 # Install required dependencies and Webmin
 RUN apt update && apt install -y wget apt-transport-https software-properties-common gnupg \
     && wget -qO - http://www.webmin.com/jcameron-key.asc | apt-key add - \
