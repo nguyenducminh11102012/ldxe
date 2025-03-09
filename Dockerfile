@@ -16,10 +16,10 @@ RUN apt update && sleep 5 && apt install -y wget apt-transport-https software-pr
     && apt clean && rm -rf /var/lib/apt/lists/*
 
 # Set Webmin root password
-RUN echo "root:admin123" | chpasswd
+RUN echo -e "admin:admin123" | chpasswd
 
 # Expose Webmin default port
 EXPOSE 10000
 
 # Start Webmin service
-CMD ["/etc/init.d/webmin", "start" && tail -f /dev/null]
+CMD ["/usr/bin/perl", "/usr/share/webmin/miniserv.pl", "/etc/webmin/miniserv.conf"]
