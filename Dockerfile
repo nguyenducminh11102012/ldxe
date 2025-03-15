@@ -1,17 +1,8 @@
-FROM debian:latest
+FROM casaos/casaos:latest
 
-# Cài đặt công cụ cần thiết
-RUN apt update && apt install -y curl sudo util-linux
+# Đặt biến môi trường nếu cần thiết
+ENV CASAOS_URL=http://localhost:80
+ENV CASAOS_DEBUG=true
 
-# Tạo file SWAP (512MB) để tăng bộ nhớ ảo
-RUN fallocate -l 512M /swapfile && \
-    chmod 600 /swapfile && \
-    mkswap /swapfile && \
-    swapon /swapfile
-
-# Cài đặt CasaOS
-RUN curl -fsSL https://get.casaos.io | bash
-
-EXPOSE 80 443 8080
-
-CMD ["bash"]
+# Chạy CasaOS
+CMD ["/usr/bin/casaos"]
