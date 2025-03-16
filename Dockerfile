@@ -1,9 +1,15 @@
-FROM ubuntu:latest
+# Sử dụng image có hỗ trợ DinD
+FROM docker:stable-dind
 
-# Cập nhật danh sách package và cài đặt curl
-RUN apt update && apt install -y curl
+# Cài đặt curl
+RUN apk add --no-cache curl
 
-# Chạy lệnh cài đặt Tipi
-RUN curl -L https://setup.runtipi.io | bash
+# Khởi động Docker daemon trước khi cài Tipi
+RUN dockerd & sleep 5 && \
+    curl -L https://setup.runtipi.io | bash
 
-CMD ["sleep", "infinity"]
+# Mở cổng cho Tipi
+EXPOSE 80 443 8080
+
+# Chạy Docker daemon và giữ container chạy
+CMD ["dockerd"]
