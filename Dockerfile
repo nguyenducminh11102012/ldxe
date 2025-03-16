@@ -1,15 +1,8 @@
 # Sử dụng image có hỗ trợ DinD
 FROM docker:stable-dind
 
-# Cài đặt curl
+# Cài đặt bất kỳ phụ thuộc nào nếu cần
 RUN apk add --no-cache curl
 
-# Khởi động Docker daemon trước khi cài Tipi
-RUN dockerd & sleep 5 && \
-    curl -L https://setup.runtipi.io | bash
-
-# Mở cổng cho Tipi
-EXPOSE 80 443 8080
-
-# Chạy Docker daemon và giữ container chạy
-CMD ["dockerd"]
+# Thêm lệnh để chạy Umbrel bằng docker run
+CMD ["docker", "run", "-it", "--rm", "--name", "umbrel", "--pid=host", "-p", "80:80", "-v", "${PWD:-.}/umbrel:/data", "-v", "/var/run/docker.sock:/var/run/docker.sock", "--stop-timeout", "60", "dockurr/umbrel"]
