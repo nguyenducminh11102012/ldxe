@@ -19,9 +19,8 @@ RUN qemu-img create -f raw disk.img 64G
 # Script để khởi động QEMU với noVNC
 RUN echo "#!/bin/bash\n\n" \
          "websockify --web=/usr/share/novnc 8006 localhost:5900 &\n" \
-         "qemu-system-x86_64 -m 2G -smp 2 -drive file=disk.img,format=raw -cdrom /tmp/tiny10.iso \\
-         -boot d -vnc :0 -cpu qemu -accel tcg" > start.sh \
-    && chmod +x start.sh
+         "qemu-system-x86_64 -m 2G -smp 2 -drive file=disk.img,format=raw -cdrom /tmp/tiny10.iso -boot d -vnc :0 -cpu qemu -accel tcg" > start.sh && \
+    chmod +x start.sh
 
 # Mở cổng cần thiết
 EXPOSE 8006
