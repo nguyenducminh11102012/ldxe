@@ -2,7 +2,7 @@ FROM ubuntu:latest
 
 # Cập nhật hệ thống và cài đặt các gói cần thiết
 RUN apt update && apt install -y \
-    qemu qemu-system-x86 \
+    qemu-system-x86 \
     novnc websockify \
     wget curl && \
     rm -rf /var/lib/apt/lists/*
