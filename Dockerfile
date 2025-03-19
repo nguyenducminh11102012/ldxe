@@ -1,7 +1,7 @@
 FROM ubuntu:latest
 
 # Cập nhật hệ thống và cài đặt các gói cần thiết
-RUN apt update && apt install -y \
+RUN export DEBIAN_FRONTEND=noninteractive && apt update && apt install -y \
     qemu-system-x86 \
     novnc websockify \
     wget curl && \
@@ -19,7 +19,7 @@ RUN qemu-img create -f raw disk.img 64G
 # Script để khởi động QEMU với noVNC
 RUN echo "#!/bin/bash\n\n" \
          "websockify --web=/usr/share/novnc 8006 localhost:5900 &\n" \
-         "qemu-system-x86_64 -m 2G -smp 2 -drive file=disk.img,format=raw -cdrom /tmp/tiny10.iso -boot d -vnc :0 -cpu qemu -accel tcg" > start.sh && \
+         "qemu-system-x86_64 -m 2G -smp 2 -drive file=disk.img,format=raw -cdrom /tmp/tiny10.iso -boot d -vnc :0 -cpu max -accel tcg" > start.sh && \
     chmod +x start.sh
 
 # Mở cổng cần thiết
