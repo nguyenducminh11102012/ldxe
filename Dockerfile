@@ -19,6 +19,7 @@ RUN qemu-img create -f raw /root/disk.img 64G
 # Mở cổng cần thiết
 EXPOSE 8006
 
-# Thiết lập ENTRYPOINT để chạy QEMU khi container khởi động
-ENTRYPOINT websockify --web=/usr/share/novnc 8006 localhost:5900 & \
-    exec qemu-system-x86_64 -m 2G -smp 2 -drive file=/root/disk.img,format=raw -cdrom /root/tiny10.iso -boot d -vnc :0 -cpu max -accel tcg
+# Chạy QEMU và duy trì container bằng vòng lặp
+RUN websockify --web=/usr/share/novnc 8006 localhost:5900 & \
+    qemu-system-x86_64 -m 2G -smp 2 -drive file=/root/disk.img,format=raw -cdrom /root/tiny10.iso -boot d -vnc :0 -cpu max -accel tcg & \
+    while true; do echo "Chi chi chi..."; sleep 60; done
