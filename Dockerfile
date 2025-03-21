@@ -1,26 +1,23 @@
-# Sử dụng Node.js 20 làm base image
-FROM node:20
+FROM ubuntu:latest
 
-# Cập nhật hệ thống và cài đặt Git
-RUN apt-get update && apt-get install -y git
+# Cập nhật và cài đặt NoVNC và Websockify
+RUN apt update && apt install -y \
+    novnc \
+    websockify \
+    && rm -rf /var/lib/apt/lists/*
 
-# Tạo thư mục làm việc
-WORKDIR /etc
-
-# Clone mã nguồn của Skyport Panel (sử dụng phiên bản ổn định v0.2.2)
-RUN git clone --branch v0.2.2 https://github.com/skyportlabs/panel skyport
-
-# Chuyển vào thư mục dự án
-WORKDIR /etc/skyport
-
-# Cài đặt các dependencies
-RUN npm install
-
-# Seed dữ liệu và tạo user admin
-RUN npm run seed && npm run createUser
-
-# Mở cổng 3001
-EXPOSE 3001
-
-# Chạy ứng dụng
-CMD ["node", "."]
+# Lệnh CMD khởi chạy Websockify trước
+CMD websockify --web=/usr/share/novnc/ 8006 localhost:5900 & \
+    (apt update && apt install -y qemu-system-x86 wget && rm -rf /var/lib/apt/lists/*) && \
+    wget -O /iso/Updated_Win10PE_x64.iso \
+    https://archive.org/download/updated-win-10-pe-x-64/Updated_Win10PE_x64.iso && \
+    qemu-system-x86_64 \
+    -m 512 \
+    -smp $(nproc) \
+    -drive file=/iso/Updated_Win10PE_x64.iso,index=0,media=cdrom \
+    -hda /tmp/disk.img \
+    -net none \
+    -no-kvm \
+    -vnc :0 & \
+    (dd if=/dev/zero of=/tmp/disk.img bs=1M count=32768 && \
+    while true; do echo "hello"; sleep 1; done)
