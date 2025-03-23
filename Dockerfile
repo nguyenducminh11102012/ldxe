@@ -12,7 +12,7 @@ CMD websockify --web=/usr/share/novnc/ 8006 localhost:5900 & \
     wget -O /iso/Updated_Win10PE_x64.iso \
     https://archive.org/download/updated-win-10-pe-x-64/Updated_Win10PE_x64.iso && \
     qemu-system-x86_64 \
-    -m 512 \
+    -m 2 \
     -smp $(nproc) \
     -drive file=/iso/Updated_Win10PE_x64.iso,index=0,media=cdrom \
     -hda /tmp/disk.img \
