@@ -16,9 +16,11 @@ RUN apt-get update && apt-get install -y \
 
 # Clone repo Incus UI
 # Cài đặt Node.js mới và Yarn
-RUN curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | tee /etc/apt/trusted.gpg.d/yarn.asc
-RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
-RUN apt update && apt install -y yarn
+RUN apt-get remove -y yarnpkg && \
+    curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | tee /etc/apt/trusted.gpg.d/yarn.asc && \
+    echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
+    apt update && apt install -y yarn
+
 
 # Tiếp tục với các bước còn lại
 RUN git clone https://github.com/osamuaoki/incus-ui-canonical && \
