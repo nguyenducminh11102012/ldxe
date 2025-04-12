@@ -1,41 +1,48 @@
-FROM gentoo/stage3:stage3-amd64-systemd
+FROM debian:bullseye-slim
 
-ENV LANG=en_US.UTF-8
-ENV LC_ALL=en_US.UTF-8
+# Cài đặt các gói cần thiết
+RUN apt-get update && apt-get install -y \
+    devscripts \
+    yarnpkg \
+    npm \
+    git \
+    sudo \
+    build-essential \
+    libssl-dev \
+    libffi-dev \
+    python3-dev \
+    dpkg-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Cập nhật hệ thống & cài gói cần thiết
-RUN emerge-webrsync && \
-    eselect repository enable lxc && \
-    emaint sync -r lxc && \
-    emerge --sync && \
-    emerge --update --deep --newuse @world && \
-    emerge --ask=n incus incus-ui sudo dbus
+# Clone repo Incus UI
+RUN git clone https://osamuaoki.github.com/incus-ui-canonical && \
+    cd incus-ui-canonical && \
+    git remote add canonical https://github.com/canonical/lxd-ui && \
+    git remote update
 
-# Tạo user để chạy Incus
-RUN useradd -m -G incus incus
+# Tạo tarball từ mã nguồn Incus UI
+RUN cd incus-ui-canonical && \
+    git archive --prefix=incus-ui-canonical-0.6/ --format=tar.gz -o ../incus-ui-canonical_0.6.orig.tar.gz incus-ui-canonical/0.6
 
-# Tạo entrypoint script khởi chạy tự động
-RUN mkdir -p /opt/incus-init && \
-    cat << 'EOF' > /opt/incus-init/start.sh
-#!/bin/bash
+# Checkout branch debian và build gói .deb
+RUN cd incus-ui-canonical && \
+    git checkout debian && \
+    debuild -us -uc && \
+    cd .. && \
+    dpkg -i incus-ui-canonical*.deb
 
-# Chuẩn bị môi trường
-echo "[*] Initializing Incus..."
-incus admin init --minimal || true
+# Cài đặt Incus
+RUN apt-get update && apt-get install -y incus
 
-echo "[*] Setting REST API on :8080..."
-incus config set core.https_address "[::]:8080"
+# Cấu hình Incus với API
+RUN incus config set core.https_address ":8443"
 
-echo "[*] Starting Incus Web UI on :8080..."
-exec incus web serve --listen=0.0.0.0:8080
-EOF
+# Tạo thư mục Web UI của Incus
+RUN mkdir -p /var/lib/incus/ui && \
+    cp -r /opt/incus-ui-canonical/incus-ui-canonical-0.6/* /var/lib/incus/ui/
 
-# Cho phép thực thi
-RUN chmod +x /opt/incus-init/start.sh
+# Expose port 8443 cho Web UI
+EXPOSE 8443
 
-# Expose port cho Web UI + REST API
-EXPOSE 8080
-
-# Dùng systemd và chạy script khi container lên
-STOPSIGNAL SIGRTMIN+3
-CMD ["/sbin/init", "--unit=multi-user.target"; "/opt/incus-init/start.sh"]
+# Khởi động Incus khi container chạy
+CMD ["incus", "web", "serve", "--listen=0.0.0.0:8443"]
