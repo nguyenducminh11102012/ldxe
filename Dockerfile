@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Clone repo Incus UI
-RUN git clone https://osamuaoki.github.com/incus-ui-canonical && \
+RUN git clone https://github.com/osamuaoki/incus-ui-canonical && \
     cd incus-ui-canonical && \
     git remote add canonical https://github.com/canonical/lxd-ui && \
     git remote update
