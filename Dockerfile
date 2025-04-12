@@ -15,21 +15,22 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Clone repo Incus UI
+# Cài đặt Node.js mới và Yarn
+RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g yarn
+
+# Tiếp tục với các bước còn lại
 RUN git clone https://github.com/osamuaoki/incus-ui-canonical && \
     cd incus-ui-canonical && \
     git remote add canonical https://github.com/canonical/lxd-ui && \
     git remote update
-
-# Tạo tarball từ mã nguồn Incus UI
-RUN cd incus-ui-canonical && \
-    git archive --prefix=incus-ui-canonical-0.6/ --format=tar.gz -o ../incus-ui-canonical_0.6.orig.tar.gz incus-ui-canonical/0.6
-
-# Checkout branch debian và build gói .deb
 RUN cd incus-ui-canonical && \
     git checkout debian && \
     debuild -us -uc && \
     cd .. && \
     dpkg -i incus-ui-canonical*.deb
+
 
 # Cài đặt Incus
 RUN apt-get update && apt-get install -y incus
