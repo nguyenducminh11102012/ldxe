@@ -26,9 +26,6 @@ RUN apt-get update && apt-get install -y \
     incus incus-ui-canonical && \
     rm -rf /var/lib/apt/lists/*
 
-# Mở port 8443 cho Incus (UI)
-RUN incus config set core.https_address :8443
-
 # Tạo certificate cho trình duyệt (user cert)
 RUN mkdir -p /certs && \
     openssl req -x509 -newkey rsa:4096 -nodes \
@@ -38,11 +35,20 @@ RUN mkdir -p /certs && \
     -inkey /certs/incus-ui.key \
     -in /certs/incus-ui.crt \
     -out /certs/incus-ui.pfx \
-    -passout pass: && \
-    incus config trust add-certificate /certs/incus-ui.crt
+    -passout pass:
 
 # Expose UI port
 EXPOSE 8443
 
-# Start Incus (sử dụng CMD để giữ container sống)
-CMD [ "sleep", "infinity" ]
+# Start Incus và cấu hình sau khi daemon sẵn sàng
+CMD bash -c '\
+    incusd & \
+    echo "🚀 Starting incusd..." && \
+    while [ ! -S /var/lib/incus/unix.socket ]; do \
+        echo "⏳ Waiting for incus socket..."; sleep 1; \
+    done && \
+    incus admin init --auto && \
+    incus config set core.https_address :8443 && \
+    incus config trust add-certificate /certs/incus-ui.crt && \
+    echo "✅ Incus is up and running on :8443" && \
+    tail -f /dev/null'
