@@ -2,46 +2,49 @@ FROM debian:bullseye
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Cài các công cụ cần thiết
+# Cài công cụ cần thiết
 RUN apt-get update && apt-get install -y \
-    incus \
-    incus-ui-canonical \
-    lsof \
-    openssl \
-    curl \
-    sudo \
-    iproute2 \
-    && rm -rf /var/lib/apt/lists/*
+    gnupg curl wget lsb-release sudo iproute2 openssl lsof
 
-# Khởi tạo cấu hình mặc định cho Incus (nếu chưa có)
+# Tạo thư mục keyring
+RUN mkdir -p /etc/apt/keyrings
+
+# Tải khóa Zabbly
+RUN curl -fsSL https://pkgs.zabbly.com/key.asc -o /etc/apt/keyrings/zabbly.asc
+
+# Thêm kho Zabbly (stable)
+RUN sh -c 'cat <<EOF > /etc/apt/sources.list.d/zabbly-incus-stable.sources
+Enabled: yes
+Types: deb
+URIs: https://pkgs.zabbly.com/incus/stable
+Suites: $(. /etc/os-release && echo ${VERSION_CODENAME})
+Components: main
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/zabbly.asc
+EOF'
+
+# Cập nhật APT và cài Incus + Web UI
+RUN apt-get update && apt-get install -y \
+    incus incus-ui-canonical && \
+    rm -rf /var/lib/apt/lists/*
+
+# Mở port 8443 cho Incus (UI)
 RUN incus config set core.https_address :8443
 
-# Kiểm tra Incus đã lắng nghe trên cổng 8443
-RUN lsof -i :8443 || echo "Incus chưa khởi động, sẽ kiểm tra sau"
+# Tạo certificate cho trình duyệt (user cert)
+RUN mkdir -p /certs && \
+    openssl req -x509 -newkey rsa:4096 -nodes \
+    -keyout /certs/incus-ui.key -out /certs/incus-ui.crt \
+    -days 3650 -subj "/CN=incus-ui" && \
+    openssl pkcs12 -export \
+    -inkey /certs/incus-ui.key \
+    -in /certs/incus-ui.crt \
+    -out /certs/incus-ui.pfx \
+    -passout pass: && \
+    incus config trust add-certificate /certs/incus-ui.crt
 
-# Tạo user certificate incus-ui.crt và private key
-RUN openssl genpkey -algorithm RSA -out /root/incus-ui.key -pkeyopt rsa_keygen_bits:2048 && \
-    openssl req -new -key /root/incus-ui.key -out /root/incus-ui.csr -subj "/CN=incus-ui" && \
-    openssl x509 -req -in /root/incus-ui.csr -signkey /root/incus-ui.key -out /root/incus-ui.crt -days 365
-
-# Tạo file PFX để import vào trình duyệt (không có mật khẩu)
-RUN openssl pkcs12 -export -out /root/incus-ui.pfx \
-    -inkey /root/incus-ui.key \
-    -in /root/incus-ui.crt \
-    -passout pass:
-
-# Thêm chứng chỉ người dùng vào danh sách trust của Incus
-RUN incus config trust add-certificate /root/incus-ui.crt
-
-# Xác minh chứng chỉ đã được thêm
-RUN incus config trust list
-
-# In thông tin chứng chỉ server tự động của Incus (self-signed)
-RUN ls -l /var/lib/incus/server.crt /var/lib/incus/server.key && \
-    openssl x509 -in /var/lib/incus/server.crt -noout -text
-
-# Mở cổng 8443
+# Expose UI port
 EXPOSE 8443
 
-# Lệnh mặc định khi container khởi động (chạy Incus foreground)
-CMD ["incusd", "--foreground"]
+# Start Incus (sử dụng CMD để giữ container sống)
+CMD [ "sleep", "infinity" ]
