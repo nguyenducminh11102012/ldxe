@@ -1,57 +1,59 @@
+# Sử dụng Debian base image
 FROM debian:bullseye-slim
 
-# Cài đặt các gói cần thiết
+# Cập nhật các package cơ bản và cài đặt các gói cần thiết
 RUN apt-get update && apt-get install -y \
-    devscripts \
-    npm \
-    git \
-    sudo \
-    build-essential \
-    libssl-dev \
-    libffi-dev \
-    python3-dev \
-    dpkg-dev \
+    lsb-release \
+    gnupg2 \
     curl \
+    apt-transport-https \
+    ca-certificates \
+    sudo \
+    wget \
+    software-properties-common \
+    build-essential \
+    dpkg-dev \
+    git \
+    lsof \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
 
-# Cài đặt yarnpkg nếu chưa có
-RUN apt update && apt install -y yarnpkg || npm install -g yarnpkg
+# Thêm kho Zabbly để cài đặt incus-ui-canonical
+RUN curl -fsSL https://packages.zabbly.com/packages.zabbly.com.key | apt-key add - && \
+    echo "deb https://packages.zabbly.com/ubuntu $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/zabbly.list
 
-# Cài đặt Node.js và Yarn (nếu chưa có)
-RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - && \
-    apt-get install -y nodejs && \
-    npm install -g yarn
-
-# Clone repo Incus UI
-RUN git clone https://github.com/osamuaoki/incus-ui-canonical && \
-    cd incus-ui-canonical && \
-    git remote add canonical https://github.com/canonical/lxd-ui && \
-    git remote update
-
-# Tạo tệp .orig.tar.gz
-RUN cd incus-ui-canonical && \
-    git checkout debian && \
-    git archive --prefix=incus-ui-canonical-0.6/ --format=tar.gz -o ../incus-ui-canonical_0.6.orig.tar.gz incus-ui-canonical/0.6
-
-# Build gói và cài đặt
-RUN cd incus-ui-canonical && \
-    debuild -us -uc && \
-    cd .. && \
-    dpkg -i incus-ui-canonical*.deb
+# Cài đặt incus-ui-canonical từ kho Zabbly
+RUN apt-get update && apt-get install -y incus-ui-canonical
 
 # Cài đặt Incus
 RUN apt-get update && apt-get install -y incus
 
-# Cấu hình Incus với API
-RUN incus config set core.https_address ":8443"
+# Cấu hình Incus để phục vụ Web UI trên cổng 8443
+RUN incus config set core.https_address :8443
 
-# Tạo thư mục Web UI của Incus
-RUN mkdir -p /var/lib/incus/ui && \
-    cp -r /opt/incus-ui-canonical/incus-ui-canonical-0.6/* /var/lib/incus/ui/
+# Kiểm tra xem Incus đã lắng nghe trên cổng 8443 chưa
+RUN lsof -i :8443
 
-# Expose port 8443 cho Web UI
+# Tạo chứng chỉ người dùng incus-ui.crt và incus-ui.pfx
+RUN openssl genpkey -algorithm RSA -out /tmp/incus-ui.key -pkeyopt rsa_keygen_bits:2048 && \
+    openssl req -new -key /tmp/incus-ui.key -out /tmp/incus-ui.csr -subj "/C=US/ST=State/L=City/O=Incus/OU=WebUI/CN=incus" && \
+    openssl x509 -req -in /tmp/incus-ui.csr -signkey /tmp/incus-ui.key -out /tmp/incus-ui.crt -days 365 && \
+    openssl pkcs12 -export -in /tmp/incus-ui.crt -inkey /tmp/incus-ui.key -out /tmp/incus-ui.pfx -passout pass:
+
+# Thêm chứng chỉ người dùng vào Incus
+RUN incus config trust add-certificate /tmp/incus-ui.crt
+
+# Kiểm tra lại danh sách các chứng chỉ đã tin cậy trong Incus
+RUN incus config trust list
+
+# Xóa các tệp chứng chỉ tạm thời sau khi sử dụng
+RUN rm -f /tmp/incus-ui.key /tmp/incus-ui.csr /tmp/incus-ui.crt /tmp/incus-ui.pfx
+
+# Đảm bảo các chứng chỉ SSL của Incus đã được tạo và có sẵn
+RUN ls -l /var/lib/incus/server.crt /var/lib/incus/server.key
+
+# Mở cổng 8443 để truy cập Web UI
 EXPOSE 8443
 
-# Khởi động Incus khi container chạy
+# Lệnh khởi động Incus với Web UI
 CMD ["incus", "web", "serve", "--listen=0.0.0.0:8443"]
-
