@@ -29,6 +29,7 @@ RUN git clone https://github.com/osamuaoki/incus-ui-canonical && \
     git remote update
 RUN cd incus-ui-canonical && \
     git checkout debian && \
+    git archive --prefix=incus-ui-canonical-0.6/ --format=tar.gz -o ../incus-ui-canonical_0.6.orig.tar.gz incus-ui-canonical/0.6 && \
     debuild -us -uc && \
     cd .. && \
     dpkg -i incus-ui-canonical*.deb
