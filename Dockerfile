@@ -17,9 +17,9 @@ RUN sh -c 'cat <<EOF > /etc/apt/sources.list.d/zabbly-incus-stable.sources
 Enabled: yes
 Types: deb
 URIs: https://pkgs.zabbly.com/incus/stable
-Suites: $(. /etc/os-release && echo ${VERSION_CODENAME})
+Suites: bullseye
 Components: main
-Architectures: $(dpkg --print-architecture)
+Architectures: amd64
 Signed-By: /etc/apt/keyrings/zabbly.asc
 EOF'
 
