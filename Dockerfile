@@ -13,15 +13,13 @@ RUN mkdir -p /etc/apt/keyrings
 RUN curl -fsSL https://pkgs.zabbly.com/key.asc -o /etc/apt/keyrings/zabbly.asc
 
 # Thêm kho Zabbly (stable)
-RUN sh -c 'cat <<EOF > /etc/apt/sources.list.d/zabbly-incus-stable.sources
-Enabled: yes
-Types: deb
-URIs: https://pkgs.zabbly.com/incus/stable
-Suites: bullseye
-Components: main
-Architectures: amd64
-Signed-By: /etc/apt/keyrings/zabbly.asc
-EOF'
+RUN echo "Enabled: yes" > /etc/apt/sources.list.d/zabbly-incus-stable.sources && \
+    echo "Types: deb" >> /etc/apt/sources.list.d/zabbly-incus-stable.sources && \
+    echo "URIs: https://pkgs.zabbly.com/incus/stable" >> /etc/apt/sources.list.d/zabbly-incus-stable.sources && \
+    echo "Suites: bullseye" >> /etc/apt/sources.list.d/zabbly-incus-stable.sources && \
+    echo "Components: main" >> /etc/apt/sources.list.d/zabbly-incus-stable.sources && \
+    echo "Architectures: amd64" >> /etc/apt/sources.list.d/zabbly-incus-stable.sources && \
+    echo "Signed-By: /etc/apt/keyrings/zabbly.asc" >> /etc/apt/sources.list.d/zabbly-incus-stable.sources
 
 # Cập nhật APT và cài Incus + Web UI
 RUN apt-get update && apt-get install -y \
