@@ -1,9 +1,10 @@
 FROM ubuntu:22.04
 
-# Định nghĩa biến môi trường đúng cú pháp (mỗi biến trên 1 dòng hoặc dùng dấu \ đúng cách)
+# Đặt các biến môi trường (không comment trên cùng dòng)
 ENV DEBIAN_FRONTEND=noninteractive
 ENV DISPLAY=:1
-ENV RESOLUTION=1024x768x16  # Độ phân giải thấp để tăng tốc
+# Độ phân giải thấp để tăng tốc
+ENV RESOLUTION=1024x768x16
 ENV VNC_PORT=5901
 ENV NOVNC_PORT=6080
 ENV ANDROID_HOME=/opt/android-sdk
@@ -34,28 +35,28 @@ RUN mkdir -p /opt/android-studio && \
     rm studio.tar.gz
 
 # Script khởi động tối ưu tốc độ
-RUN echo '#!/bin/bash\n\
-# Khởi động Xvfb\n\
-Xvfb $DISPLAY -screen 0 $RESOLUTION -ac -nolisten tcp >/dev/null 2>&1 &\n\
-sleep 1\n\
-\n\
-# Khởi động fluxbox\n\
-fluxbox >/dev/null 2>&1 &\n\
-\n\
-# Khởi động Android Studio\n\
-/opt/android-studio/bin/studio.sh >/dev/null 2>&1 &\n\
-\n\
-# Khởi động x11vnc\n\
+RUN echo '#!/bin/bash
+# Khởi động Xvfb
+Xvfb $DISPLAY -screen 0 $RESOLUTION -ac -nolisten tcp >/dev/null 2>&1 &
+sleep 1
+
+# Khởi động fluxbox
+fluxbox >/dev/null 2>&1 &
+
+# Khởi động Android Studio
+/opt/android-studio/bin/studio.sh >/dev/null 2>&1 &
+
+# Khởi động x11vnc với các tham số tối ưu
 x11vnc -display $DISPLAY -forever -shared -rfbport $VNC_PORT \
        -passwd $(cat /home/developer/.vnc/passwd) -bg \
        -noxdamage -xrandr -threads -nowf -nopw -wait 5 -defer 5 \
-       -permitfiletransfer -tightfilexfer >/dev/null 2>&1\n\
-\n\
-# Khởi động NoVNC\n\
+       -permitfiletransfer -tightfilexfer >/dev/null 2>&1
+
+# Khởi động NoVNC
 websockify --web=/usr/share/novnc/ $NOVNC_PORT localhost:$VNC_PORT \
-           --heartbeat=25 --timeout=30 >/dev/null 2>&1\n\
-\n\
-# Giữ container chạy\n\
+           --heartbeat=25 --timeout=30 >/dev/null 2>&1
+
+# Giữ container chạy
 tail -f /dev/null' > /start.sh && \
     chmod +x /start.sh
 
