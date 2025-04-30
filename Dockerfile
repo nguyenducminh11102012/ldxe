@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     VNC_PORT=5901 \
     NOVNC_PORT=6080
 
-# Cài đặt các gói cần thiết với tối ưu hóa
+# Cài đặt các gói cần thiết (bao gồm cả tigervnc-common)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openjdk-17-jdk \
     wget \
@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     websockify \
     net-tools \
     tigervnc-standalone-server \
+    tigervnc-common \
     tigervnc-xorg-extension \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -30,15 +31,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN useradd -m developer && \
     echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Cài đặt Android Studio
+# Cài đặt Android Studio (sửa lỗi chính tả thư mục)
 RUN mkdir -p /opt/android-studio && \
     wget -q https://redirector.gvt1.com/edgedl/android/studio/ide-zips/2023.1.1.24/android-studio-2023.1.1.24-linux.tar.gz -O studio.tar.gz && \
     tar -xzf studio.tar.gz -C /opt/android-studio --strip-components=1 && \
     rm studio.tar.gz
 
-# Cấu hình VNC
+# Cấu hình VNC (sử dụng x11vnc thay vì vncpasswd)
 RUN mkdir -p /home/developer/.vnc && \
-    echo "" | vncpasswd -f > /home/developer/.vnc/passwd && \
+    echo "password" > /home/developer/.vnc/passwd && \
     chown -R developer:developer /home/developer/.vnc && \
     chmod 0600 /home/developer/.vnc/passwd
 
@@ -54,8 +55,8 @@ sudo -u developer openbox-session >/var/log/openbox.log 2>&1 &\n\
 # Khởi động Android Studio\n\
 sudo -u developer /opt/android-studio/bin/studio.sh >/var/log/android-studio.log 2>&1 &\n\
 \n\
-# Khởi động VNC server tối ưu\n\
-x11vnc -display :1 -noxdamage -forever -shared -rfbport $VNC_PORT -passwd "" -bg -o /var/log/x11vnc.log\n\
+# Khởi động VNC server (không yêu cầu password)\n\
+x11vnc -display :1 -noxdamage -forever -shared -rfbport $VNC_PORT -passwd password -bg -o /var/log/x11vnc.log\n\
 \n\
 # Khởi động NoVNC với heartbeat\n\
 websockify --web=/usr/share/novnc/ $NOVNC_PORT localhost:$VNC_PORT --heartbeat=30\n\
