@@ -2,71 +2,64 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     DISPLAY=:1 \
-    ANDROID_HOME=/home/developer/Android/Sdk \
-    PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools \
+    RESOLUTION=1024x768x16 \  # Độ phân giải thấp để tăng tốc
     VNC_PORT=5901 \
-    NOVNC_PORT=6080
+    NOVNC_PORT=6080 \
+    ANDROID_HOME=/opt/android-sdk
 
-# Cài đặt các gói cần thiết (bao gồm cả tigervnc-common)
+# Cài đặt gói tối thiểu
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openjdk-17-jdk \
     wget \
-    curl \
-    git \
-    unzip \
-    x11vnc \
     xvfb \
-    openbox \
-    sudo \
+    fluxbox \  # Window manager nhẹ nhất
+    x11vnc \
     novnc \
     websockify \
-    net-tools \
-    tigervnc-standalone-server \
-    tigervnc-common \
-    tigervnc-xorg-extension \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Tạo user developer
 RUN useradd -m developer && \
-    echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+    mkdir -p /home/developer/.vnc && \
+    echo "android" | vncpasswd -f > /home/developer/.vnc/passwd && \
+    chown -R developer:developer /home/developer/.vnc && \
+    chmod 0600 /home/developer/.vnc/passwd
 
-# Cài đặt Android Studio (sửa lỗi chính tả thư mục)
+# Cài đặt Android Studio (bản nhẹ nhất)
 RUN mkdir -p /opt/android-studio && \
     wget -q https://redirector.gvt1.com/edgedl/android/studio/ide-zips/2023.1.1.24/android-studio-2023.1.1.24-linux.tar.gz -O studio.tar.gz && \
     tar -xzf studio.tar.gz -C /opt/android-studio --strip-components=1 && \
     rm studio.tar.gz
 
-# Cấu hình VNC (sử dụng x11vnc thay vì vncpasswd)
-RUN mkdir -p /home/developer/.vnc && \
-    echo "password" > /home/developer/.vnc/passwd && \
-    chown -R developer:developer /home/developer/.vnc && \
-    chmod 0600 /home/developer/.vnc/passwd
-
-# Tạo script khởi động tích hợp
+# Script khởi động tối ưu tốc độ
 RUN echo '#!/bin/bash\n\
-# Khởi động Xvfb với các tham số tối ưu\n\
-Xvfb :1 -screen 0 1280x800x16 -ac -nolisten tcp +extension GLX +render -noreset >/var/log/Xvfb.log 2>&1 &\n\
-sleep 2\n\
+# Khởi động Xvfb với tham số tối ưu\n\
+Xvfb $DISPLAY -screen 0 $RESOLUTION -ac -nolisten tcp >/dev/null 2>&1 &\n\
+sleep 1\n\
 \n\
-# Khởi động window manager\n\
-sudo -u developer openbox-session >/var/log/openbox.log 2>&1 &\n\
+# Khởi động fluxbox (không cần log)\n\
+fluxbox >/dev/null 2>&1 &\n\
 \n\
 # Khởi động Android Studio\n\
-sudo -u developer /opt/android-studio/bin/studio.sh >/var/log/android-studio.log 2>&1 &\n\
+/opt/android-studio/bin/studio.sh >/dev/null 2>&1 &\n\
 \n\
-# Khởi động VNC server (không yêu cầu password)\n\
-x11vnc -display :1 -noxdamage -forever -shared -rfbport $VNC_PORT -passwd password -bg -o /var/log/x11vnc.log\n\
+# Khởi động x11vnc với tham số tối ưu tốc độ\n\
+x11vnc -display $DISPLAY -forever -shared -rfbport $VNC_PORT \
+       -passwd $(cat /home/developer/.vnc/passwd) -bg \
+       -noxdamage -xrandr -threads -nowf -nopw -wait 5 -defer 5 \
+       -permitfiletransfer -tightfilexfer >/dev/null 2>&1\n\
 \n\
-# Khởi động NoVNC với heartbeat\n\
-websockify --web=/usr/share/novnc/ $NOVNC_PORT localhost:$VNC_PORT --heartbeat=30\n\
+# Khởi động NoVNC với buffer lớn\n\
+websockify --web=/usr/share/novnc/ $NOVNC_PORT localhost:$VNC_PORT \
+           --heartbeat=25 --timeout=30 >/dev/null 2>&1\n\
 \n\
 # Giữ container chạy\n\
-tail -f /dev/null' > /start-vnc.sh && \
-    chmod +x /start-vnc.sh
+tail -f /dev/null' > /start.sh && \
+    chmod +x /start.sh
 
-# Expose các cổng cần thiết
 EXPOSE $VNC_PORT $NOVNC_PORT
 
-# Khởi động bằng script
-CMD ["/start-vnc.sh"]
+USER developer
+WORKDIR /home/developer
+CMD ["/start.sh"]
