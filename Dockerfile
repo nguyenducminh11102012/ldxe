@@ -23,27 +23,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpulse0 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Tạo user developer
+# Tạo user developer và thư mục SDK
 RUN useradd -m developer && \
-    mkdir -p /home/developer && \
-    mkdir -p /opt/android-sdk && \
+    mkdir -p /opt/android-sdk/cmdline-tools && \
     chown -R developer:developer /opt/android-sdk
 
 # Tải Android Studio (CLI only)
 RUN mkdir -p /opt/android-studio && \
-    wget -q https://redirector.gvt1.com/edgedl/android/studio/ide-zips/2023.1.1.24/android-studio-2023.1.1.24-linux.tar.gz -O studio.tar.gz && \
-    tar -xzf studio.tar.gz -C /opt/android-studio --strip-components=1 && \
-    rm studio.tar.gz
+    wget -q https://redirector.gvt1.com/edgedl/android/studio/ide-zips/2023.1.1.24/android-studio-2023.1.1.24-linux.tar.gz -O /opt/android-studio/studio.tar.gz && \
+    tar -xzf /opt/android-studio/studio.tar.gz -C /opt/android-studio --strip-components=1 && \
+    rm /opt/android-studio/studio.tar.gz
 
 # Tải và cài đặt Android SDK command-line tools
 USER developer
 WORKDIR /home/developer
 RUN wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip && \
-    unzip -q cmdline-tools.zip -d $ANDROID_HOME && \
+    unzip -q cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools && \
     rm cmdline-tools.zip && \
-    mv $ANDROID_HOME/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+    mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
 
-# Cài SDK và AVD
+# Chấp nhận licenses SDK và cài đặt các thành phần cần thiết
 RUN yes | sdkmanager --licenses && \
     sdkmanager "platform-tools" "emulator" "platforms;android-30" "system-images;android-30;google_apis;x86"
 
@@ -62,9 +61,9 @@ sleep 2\n\
 fluxbox >/dev/null 2>&1 &\n\
 sleep 1\n\
 x11vnc -display $DISPLAY -forever -shared -rfbport $VNC_PORT -passwd android -bg \\\n\
-       -noxdamage -xrandr -threads -nowf -nopw -wait 10 -defer 10 >/dev/null 2>&1\n\
+        -noxdamage -xrandr -threads -nowf -nopw -wait 10 -defer 10 >/dev/null 2>&1 &\n\
 websockify --web=/usr/share/novnc/ $NOVNC_PORT localhost:$VNC_PORT \\\n\
-           --heartbeat=30 --timeout=45 >/dev/null 2>&1 &\n\
+                --heartbeat=30 --timeout=45 >/dev/null 2>&1 &\n\
 su - developer -c "export DISPLAY=$DISPLAY && \\\n\
     export QT_QUICK_BACKEND=software && \\\n\
     export LIBGL_ALWAYS_SOFTWARE=1 && \\\n\
