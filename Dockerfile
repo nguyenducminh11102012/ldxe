@@ -33,27 +33,38 @@ RUN mkdir -p /opt/android-studio && \
     tar -xzf studio.tar.gz -C /opt/android-studio --strip-components=1 && \
     rm studio.tar.gz
 
-# Script khởi động (viết đúng cách)
+# Cấu hình script khởi động
+USER root
 RUN echo '#!/bin/bash\n\
 # Khởi động Xvfb\n\
-Xvfb $DISPLAY -screen 0 $RESOLUTION -ac -nolisten tcp >/dev/null 2>&1 &\n\
+Xvfb $DISPLAY -screen 0 800x600x16 +extension GLX +render -noreset >/dev/null 2>&1 &\n\
+sleep 2\n\
+\n\
+# Khởi động window manager\n\
+fluxbox >/dev/null 2>&1 &\n\
 sleep 1\n\
 \n\
-# Khởi động fluxbox\n\
-fluxbox >/dev/null 2>&1 &\n\
-\n\
-# Khởi động Android Studio\n\
-/opt/android-studio/bin/studio.sh >/dev/null 2>&1 &\n\
-\n\
 # Khởi động x11vnc\n\
-x11vnc -display $DISPLAY -forever -shared -rfbport $VNC_PORT \\\n\
-       -passwd $(cat /home/developer/.vnc/passwd) -bg \\\n\
-       -noxdamage -xrandr -threads -nowf -nopw -wait 5 -defer 5 \\\n\
-       -permitfiletransfer -tightfilexfer >/dev/null 2>&1\n\
+x11vnc -display $DISPLAY -forever -shared -rfbport $VNC_PORT -passwd android -bg \\\n\
+       -noxdamage -xrandr -threads -nowf -nopw -wait 10 -defer 10 >/dev/null 2>&1\n\
 \n\
 # Khởi động NoVNC\n\
 websockify --web=/usr/share/novnc/ $NOVNC_PORT localhost:$VNC_PORT \\\n\
-           --heartbeat=25 --timeout=30 >/dev/null 2>&1\n\
+           --heartbeat=30 --timeout=45 >/dev/null 2>&1 &\n\
+\n\
+# Khởi động Android emulator với software rendering\n\
+su - android -c "export DISPLAY=$DISPLAY && \\\n\
+    export QT_QUICK_BACKEND=software && \\\n\
+    export LIBGL_ALWAYS_SOFTWARE=1 && \\\n\
+    $ANDROID_HOME/emulator/emulator -avd pixel_4 \\\n\
+    -no-audio \\\n\
+    -no-window \\\n\
+    -gpu swiftshader_indirect \\\n\
+    -no-snapshot \\\n\
+    -no-boot-anim \\\n\
+    -no-accel \\\n\
+    -memory 1536 \\\n\
+    -qemu -m 1536 -enable-kvm false"\n\
 \n\
 # Giữ container chạy\n\
 tail -f /dev/null' > /start.sh && \
