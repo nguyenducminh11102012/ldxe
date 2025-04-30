@@ -1,23 +1,33 @@
-# Sử dụng Ubuntu 20.04 làm base image
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
-# Đảm bảo không có bất kỳ prompt nào khi cài đặt
 ENV DEBIAN_FRONTEND=noninteractive
+ENV DISPLAY=:1
+ENV ANDROID_HOME=/home/developer/Android/Sdk
+ENV PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools
 
-# Cài đặt các package cần thiết: curl, lxd và các công cụ hỗ trợ khác
-RUN apt-get update && \
-    apt-get install -y curl lxd && \
-    apt-get clean
+# Cài các phần mềm cần thiết
+RUN apt-get update && apt-get install -y \
+    openjdk-17-jdk wget curl git unzip \
+    x11vnc xvfb openbox sudo \
+    novnc websockify net-tools \
+    && rm -rf /var/lib/apt/lists/*
 
-# Thiết lập LXD và các cấu hình cơ bản
-RUN lxc init ubuntu:20.04 lxdmosaic && \
-    lxc config set core.https_address [::] && \
-    lxc config set core.trust_password admin
+# Tạo user thường để chạy GUI
+RUN useradd -m developer && \
+    echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Kết nối vào container và cài đặt LXDMosaic
-RUN lxc exec lxdmosaic -- bash -c "curl https://raw.githubusercontent.com/turtle0x1/LxdMosaic/master/examples/install_with_clone.sh -o installLxdMosaic.sh && \
-    chmod +x installLxdMosaic.sh && \
-    ./installLxdMosaic.sh"
+# Cài Android Studio
+RUN mkdir -p /opt/android-studio && \
+    wget -q https://redirector.gvt1.com/edgedl/android/studio/ide-zips/2023.1.1.24/android-studio-2023.1.1.24-linux.tar.gz -O studio.tar.gz && \
+    tar -xzf studio.tar.gz -C /opt/android-studio --strip-components=1 && \
+    rm studio.tar.gz
 
-# Mặc định chạy bash khi container khởi động
-CMD ["/bin/bash"]
+# Script khởi động các dịch vụ
+CMD bash -c "\
+    Xvfb :1 -screen 0 1280x800x16 & \
+    sleep 2 && \
+    sudo -u developer openbox & \
+    sudo -u developer /opt/android-studio/bin/studio.sh & \
+    x11vnc -display :1 -nopw -forever -shared & \
+    websockify --web=/usr/share/novnc/ 6080 localhost:5900 \
+"
