@@ -1,43 +1,38 @@
-FROM ubuntu:22.04
+# Sử dụng Ubuntu 20.04 làm base image
+FROM ubuntu:20.04
 
+# Đặt biến môi trường để bỏ qua các prompt khi cài gói
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Cài qemu + novnc + websockify
-RUN apt update && apt install -y \
-    qemu-system-x86 \
-    wget \
+# Cập nhật và cài các gói cần thiết
+RUN apt update && \
+    apt install -y \
     git \
-    python3 \
-    python3-websockify \
-    && apt clean
+    cmake \
+    g++ \
+    libjson-c-dev \
+    libwebsockets-dev \
+    libssl-dev \
+    libuv1-dev \
+    build-essential \
+    wget \
+    curl \
+    vim \
+    pkg-config \
+    ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
-WORKDIR /root
+# Clone ttyd từ GitHub và build
+RUN git clone https://github.com/tsl0922/ttyd.git /ttyd && \
+    cd /ttyd && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make && \
+    make install
 
-# Tải ISO
-RUN wget -O windows.iso "https://archive.org/download/windows-server-2025-beta-build-25295-lite-os-tiny-server-11/Windows%20Server%202025%20Beta%20Build%2025295%20-%20LiteOS%20%23TinyServer11.iso"
+# Expose port 8080
+EXPOSE 8080
 
-# Clone noVNC + websockify
-RUN git clone https://github.com/novnc/noVNC.git && \
-    git clone https://github.com/novnc/websockify noVNC/utils/websockify
-
-# Tạo ổ cứng ảo
-RUN qemu-img create -f qcow2 disk.qcow2 60G
-
-# Mở port
-EXPOSE 6080 3389
-
-# CMD tối ưu CPU Broadwell
-CMD qemu-system-x86_64 \
-    -m 60000 \
-    -cpu Broadwell,+sse4.1,+sse4.2,+aes,+avx,+avx2,+xsave,+xsaveopt,+smep,+fma,+movbe,+xsavec,+xgetbv1 \
-    -smp 16 \
-    -machine type=q35,accel=tcg \
-    -vga std \
-    -device virtio-balloon-pci \
-    -netdev user,id=net0,hostfwd=tcp::3389-:3389 \
-    -device e1000,netdev=net0 \
-    -drive file=/root/disk.qcow2,format=qcow2,aio=native,cache=none,discard=on \
-    -drive file=/root/windows.iso,media=cdrom,index=2 \
-    -vnc :3 \
-    -usb -device usb-tablet & \
-    /root/noVNC/utils/novnc_proxy --vnc localhost:5903 --listen 6080
+# Lệnh mặc định: chạy ttyd với shell bash
+CMD ["ttyd", "-p",, "-W", "8080", "bash"]
