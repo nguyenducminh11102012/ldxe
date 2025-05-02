@@ -14,4 +14,5 @@ RUN apt update && apt install -y \
 EXPOSE 8080
 
 # Mặc định chạy bash trong ttyd
-CMD ["ttyd", "-p", "-W", "8080", "bash"]
+CMD ["ttyd", "-p", "8080", "--", "bash", "-W"]
+
