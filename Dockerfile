@@ -28,9 +28,9 @@ EXPOSE 6080 3389
 
 # CMD tối ưu CPU Broadwell
 CMD qemu-system-x86_64 \
-    -m 1024 \
+    -m 60000 \
     -cpu Broadwell,+sse4.1,+sse4.2,+aes,+avx,+avx2,+xsave,+xsaveopt,+smep,+fma,+movbe,+xsavec,+xgetbv1 \
-    -smp 2 \
+    -smp 16 \
     -machine type=q35,accel=tcg \
     -vga std \
     -device virtio-balloon-pci \
